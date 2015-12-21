@@ -1,8 +1,10 @@
 '''This program checks a csv file that contains
 a list of urls and checks if each url is active'''
 import csv
+from pandas import DataFrame, read_csv
 from os.path import join
 from os import mkdir
+from invisibleroads_macros.disk import make_folder
 import urllib2
 import argparse
 
@@ -47,48 +49,35 @@ error_codes = {
     505: ('HTTP Version Not Supported', 'Cannot fulfill request.'),
     }
 
-def check_links(links, url_col_no, problem_col_no): 
-    target_path = join('./results/','check_urls.csv')
+def check_links(links_table, url_col, target_folder):
+    target_path = join(target_folder,'check_urls.csv')
     
     data = []
-    with open(links, 'rU') as f:
-        reader = csv.reader(f)
-        for row in reader:
-            url = row[url_col_no]
-            if 'http' in url:
-                req = urllib2.Request(url)
-                try: urllib2.urlopen(req)
-                except urllib2.HTTPError as e:
-                    row[problem_col_no] = str(e.code) + "-" + error_codes.get(e.code)[0]
-            data.append(row)
-
+    for url in links_table[url_col]:
+        req = urllib2.Request(url)
+        try: 
+            urllib2.urlopen(req)
+            data.append("")
+        except urllib2.HTTPError as e:
+            data.append(str(e.code) + "-" + error_codes.get(e.code)[0])
+    links_table['problems'] = data
 
     try:
-        f = open(target_path, 'w+')
-
+        links_table.to_csv(target_path, index=False)
     except IOError:
         mkdir('./results')
-        f = open(target_path, 'w+')
-
-    writer = csv.writer(f)
-    for row in data:
-        writer.writerow(row)
-    f.close()
-    print{
-            'check_urls_table_path': target_path
-    }
+        links_table.to_csv(target_path, index=False)
+    print 'check_urls_table_path = ' + target_path
 
 if __name__ == "__main__":
-    #file name
-    links_file = 'links-list.csv'
     parser = argparse.ArgumentParser(description='Check csv file for broken links')
     parser.add_argument('--urls_table_path', metavar='N', required=True,
             type=str, help='files to check')
-    parser.add_argument('--colno', metavar='c', type=int,nargs='?', default=0,
-                            help='column number in csv sheet, starting from index 0')
-    parser.add_argument('--colno_problem', metavar='r', type=int, nargs='?',default=1,
-                            help='column number of where problems of links would be reported in csv sheet, starting from index 0')
+    parser.add_argument('--url_column', type=str,required=True,
+            metavar='COLUMNS', help='column name in csv sheet')
+    parser.add_argument('--target_folder', metavar='FOLDER', type=make_folder)
     args = parser.parse_args()
     print(args.urls_table_path)
-    check_links(args.urls_table_path,url_col_no=args.colno, problem_col_no=args.colno_problem)
-
+    urls_table = read_csv(args.urls_table_path)
+    check_links(urls_table, args.url_column, args.target_folder)
+    
