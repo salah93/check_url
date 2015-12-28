@@ -1,10 +1,10 @@
 '''This program checks a csv file that contains
 a list of urls and checks if each url is active'''
-from pandas import read_csv
-from os.path import join
-from invisibleroads_macros.disk import make_folder
-import urllib2
 import argparse
+import urllib2
+from invisibleroads_macros.disk import make_folder
+from os.path import join
+from pandas import read_csv
 
 
 def check_links(table_path, url_col, target_folder):
