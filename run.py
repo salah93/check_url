@@ -1,44 +1,46 @@
-'''This program checks a csv file that contains
-a list of urls and checks if each url is active'''
-from pandas import read_csv
-from os.path import join
-from invisibleroads_macros.disk import make_folder
-import urllib2
+"""
+Check the status of each URL in a CSV file.
+"""
 import argparse
+import urllib2
+from invisibleroads_macros.disk import make_folder
+from invisibleroads_macros.log import format_path
+from os.path import join
+from pandas import read_csv
 
 
-def check_links(table_path, url_col, target_folder):
-    target_path = join(target_folder, 'check_urls.csv')
+def check_links(target_folder, table_path, url_column):
+    target_path = join(target_folder, 'links.csv')
     links_table = read_csv(table_path)
-   
-    data = []
-    # check each url's validity
-    for url in links_table[url_col]:
-        req = urllib2.Request(url)
-        try: 
-            urllib2.urlopen(req)
-            data.append("")
-        except urllib2.HTTPError as e:
-            data.append(e.code)
-    links_table['problems'] = data
 
-    # TODO: fix this, add try/except, implement make_folder
+    status_codes = []
+    # Check each url's validity
+    for url in links_table[url_column]:
+        req = urllib2.Request(url)
+        try:
+            res = urllib2.urlopen(req)
+            status_codes.append(res.code)
+        except urllib2.HTTPError as e:
+            status_codes.append(e.code)
+    links_table['Status Codes'] = status_codes
+
+    # TODO: Fix this, add try/except, implement make_folder
     links_table.to_csv(target_path, index=False)
 
     # Required print statement for crosscompute
-    print('check_urls_table_path = ' + target_path)
+    print('url_table_path = ' + format_path(target_path))
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Check csv file for broken links')
-    parser.add_argument('--urls_table_path', metavar='N', required=True,
-            type=str, help='.csv file to check')
-    parser.add_argument('--url_column', type=str,required=True,
-            metavar='COLUMNS', help='column name in csv sheet where urls are stored')
-    parser.add_argument('--target_folder', metavar='FOLDER', type=make_folder)
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        description='Check CSV for broken links')
+    parser.add_argument(
+        '--target_folder', metavar='FOLDER', type=make_folder)
+    parser.add_argument(
+        '--url_table_path', metavar='PATH', required=True,
+        help='CSV containing URLs')
+    parser.add_argument(
+        '--url_column', metavar='COLUMN', required=True,
+        help='column in CSV containing URLs')
     args = parser.parse_args()
-    print(args.urls_table_path)
-
-    check_links(args.urls_table_path, args.url_column, args.target_folder)
-
-
+    check_links(args.target_folder, args.url_table_path, args.url_column)
