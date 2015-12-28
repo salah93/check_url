@@ -8,13 +8,11 @@ import argparse
 
 
 def check_links(table_path, url_col, target_folder):
-    target_path = join(target_folder,'check_urls.csv')
-    
-    #create DataFrame object    
+    target_path = join(target_folder, 'check_urls.csv')
     links_table = read_csv(table_path)
    
     data = []
-    #traverse urls, checking each url's validity
+    # check each url's validity
     for url in links_table[url_col]:
         req = urllib2.Request(url)
         try: 
@@ -24,14 +22,14 @@ def check_links(table_path, url_col, target_folder):
             data.append(e.code)
     links_table['problems'] = data
 
-    #TODO: fix this, add try/except, implement make_folder
+    # TODO: fix this, add try/except, implement make_folder
     links_table.to_csv(target_path, index=False)
 
-    #required print statement for crosscompute
-    print 'check_urls_table_path = ' + target_path
+    # Required print statement for crosscompute
+    print('check_urls_table_path = ' + target_path)
+
 
 if __name__ == "__main__":
-    #parse arguments to retrieve csv file and desired column
     parser = argparse.ArgumentParser(description='Check csv file for broken links')
     parser.add_argument('--urls_table_path', metavar='N', required=True,
             type=str, help='.csv file to check')
@@ -40,7 +38,7 @@ if __name__ == "__main__":
     parser.add_argument('--target_folder', metavar='FOLDER', type=make_folder)
     args = parser.parse_args()
     print(args.urls_table_path)
-    #run script
+
     check_links(args.urls_table_path, args.url_column, args.target_folder)
 
-    
+
