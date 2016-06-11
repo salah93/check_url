@@ -2,45 +2,38 @@
 Check the status of each URL in a CSV file.
 """
 import argparse
-import urllib2
-from invisibleroads_macros.disk import make_folder
-from invisibleroads_macros.log import format_path
-from os.path import join
-from pandas import read_csv
+import csv
+import requests
 
 
-def check_links(target_folder, table_path, url_column):
-    target_path = join(target_folder, 'links.csv')
-    links_table = read_csv(table_path)
-
-    status_codes = []
+def check_links(urls):
+    if len(urls) <= 0:
+        return []
     # Check each url's validity
-    for url in links_table[url_column]:
-        req = urllib2.Request(url)
-        try:
-            res = urllib2.urlopen(req)
-            status_codes.append(res.code)
-        except urllib2.HTTPError as e:
-            status_codes.append(e.code)
-    links_table['Status Codes'] = status_codes
-
-    # TODO: Fix this, add try/except, implement make_folder
-    links_table.to_csv(target_path, index=False)
-
-    # Required print statement for crosscompute
-    print('url_table_path = ' + format_path(target_path))
+    url = urls[0]
+    tail = urls[1:]
+    try:
+        req = requests.head(url)
+        code = req.status_code
+    except requests.HTTPError as e:
+        code = e.code
+    except requests.ConnectionError as e:
+        code = 'connection error'
+    return [(url, code)] + check_links(tail)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Check CSV for broken links')
     parser.add_argument(
-        '--target_folder', metavar='FOLDER', type=make_folder)
-    parser.add_argument(
-        '--url_table_path', metavar='PATH', required=True,
+        'urls', metavar='URLS', nargs='+',
         help='CSV containing URLs')
-    parser.add_argument(
-        '--url_column', metavar='COLUMN', required=True,
-        help='column in CSV containing URLs')
     args = parser.parse_args()
-    check_links(args.target_folder, args.url_table_path, args.url_column)
+    status_codes = check_links(args.urls)
+    target_path = 'links.csv'
+    with open(target_path, 'w') as f:
+        writer = csv.writer(f)
+        writer.writerow(["url", "status_code"])
+        writer.writerows(status_codes)
+    # Required print statement for crosscompute
+    print('url_table_path = ' + target_path)
