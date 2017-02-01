@@ -3,34 +3,37 @@ Check the status of each URL in a CSV file.
 """
 import argparse
 import csv
+from os.path import join
+
 import requests
 
 
 def check_links(urls):
-    if len(urls) <= 0:
-        return []
-    # Check each url's validity
-    url = urls[0]
-    tail = urls[1:]
-    try:
-        req = requests.head(url)
-        code = req.status_code
-    except requests.HTTPError as e:
-        code = e.code
-    except requests.ConnectionError as e:
-        code = 'connection error'
-    return [(url, code)] + check_links(tail)
+    status_codes = []
+    for url in urls:
+        # Check each url's validity
+        try:
+            req = requests.head(url)
+            code = req.status_code
+        except requests.HTTPError as e:
+            code = e.code
+        except requests.ConnectionError as e:
+            code = 'no such site'
+        status_codes.append((url, code))
+    return sorted(status_codes, key=lambda x: x[1])
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        description='Check CSV for broken links')
-    parser.add_argument(
-        'urls', metavar='URLS', nargs='+',
-        help='CSV containing URLs')
+                 description='Check CSV for broken links')
+    parser.add_argument('--target_folder', metavar='FOLDER')
+    parser.add_argument('--urls_path', metavar='PATH', required=True,
+                        help='file containing list of URLs')
     args = parser.parse_args()
-    status_codes = check_links(args.urls)
-    target_path = 'links.csv'
+    with open(args.urls_path) as f:
+        urls = [line.strip() for line in f.readlines()]
+    status_codes = check_links(urls)
+    target_path = join(args.target_folder, 'links.csv')
     with open(target_path, 'w') as f:
         writer = csv.writer(f)
         writer.writerow(["url", "status_code"])
