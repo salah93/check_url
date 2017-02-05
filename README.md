@@ -1,5 +1,5 @@
 # Links Validator
-An app built for [crosscompute]('https://crosscompute.com/docs')
+An app built for [crosscompute](https://crosscompute.com/docs)
 
 checks the status codes of a list of links :)
 
